@@ -16,7 +16,8 @@ services:
     ports:
       - 6543:5432
     volumes:
-      -   trainingdata:/var/lib/postgresql/data:Z
+      - trainingdata:/var/lib/postgresql/data:Z
+      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
   training-admin:
     image: dpage/pgadmin4:latest
     container_name: pgAdmin
@@ -24,8 +25,8 @@ services:
     ports:
       - 80:80
     environment:
-      - PGADMIN_DEFAULT_EMAIL=akoudri@cenotelie.fr
-      - PGADMIN_DEFAULT_PASSWORD=cenotelie
+      - PGADMIN_DEFAULT_EMAIL=ali.koudri@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=training
     volumes:
       - pgadmindata:/var/lib/pgadmin4/storage
 
