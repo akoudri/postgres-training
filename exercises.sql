@@ -19,6 +19,8 @@ GRANT SELECT, INSERT ON inventaire TO vendor_role;
 -- Pour les tables futures (si vous prévoyez de créer d'autres tables similaires)
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT ON TABLES TO vendor_role;
 
+REVOKE CONNECT ON DATABASE ecommerce FROM customer_role;
+
 ---------------------------------------
 
 CREATE ROLE general_user WITH LOGIN PASSWORD 'general_password';
@@ -39,17 +41,17 @@ ALTER ROLE admin_role WITH CONNECTION LIMIT 5;
 
 CREATE TABLE author (
     id SERIAL PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
+    first_name VARCHAR(32) NOT NULL,
+    last_name VARCHAR(32) NOT NULL,
     birthdate DATE,
     UNIQUE (first_name, last_name)
 );
 
 CREATE TABLE book (
     id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
+    title VARCHAR(32) NOT NULL,
     published_date DATE DEFAULT CURRENT_DATE,
-    genre TEXT DEFAULT 'Inconnu',
+    genre VARCHAR(32) DEFAULT 'Inconnu',
     author_id INT REFERENCES author(id)
 );
 
@@ -67,10 +69,10 @@ ADD CONSTRAINT unique_title
 UNIQUE (title);
 
 ALTER TABLE author
-ADD COLUMN nationalité VARCHAR(32);
+ADD COLUMN nationality CHAR(2);
 
 ALTER TABLE book
-ADD COLUMN ISBN VARCHAR(32) UNIQUE;
+ADD COLUMN ISBN CHAR(32) UNIQUE;
 
 CREATE TABLE book_copy (
     book_id INT,
