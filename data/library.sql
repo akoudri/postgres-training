@@ -9,7 +9,6 @@ INSERT INTO author (first_name, last_name, birthdate) VALUES ('Emily', 'Bronte',
 INSERT INTO author (first_name, last_name, birthdate) VALUES ('Jules', 'Verne', '1828-02-08');
 INSERT INTO Author (first_name, last_name, birthdate) VALUES ('Agatha', 'Christie', '1890-09-15');
 INSERT INTO Author (first_name, last_name, birthdate) VALUES ('Ernest', 'Hemingway', '1899-07-21');
--- INSERT INTO author (first_name, last_name, birthdate) VALUES ('Mark', 'Twain', '1835-11-30');
 
 -- Livres de George Orwell
 INSERT INTO book (title, published_date, genre) VALUES ('1984', '1949-06-08', 'Science-fiction');
@@ -59,46 +58,46 @@ INSERT INTO book (title, published_date, genre) VALUES ('Les Cinq Cents Millions
 -- Relations
 
 -- Relations pour George Orwell
-INSERT INTO book_author (book_id, author_id, role) VALUES (3, 1, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (4, 1, 'Premier auteur');
-
+INSERT INTO book_author (book_id, author_id, role) VALUES (3, 1, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (4, 1, 'first');
+    
 -- Relations pour J.K. Rowling
-INSERT INTO book_author (book_id, author_id, role) VALUES (1, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (2, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (3, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (4, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (5, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (6, 2, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (7, 2, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (1, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (2, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (3, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (4, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (5, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (6, 2, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (7, 2, 'first');
 
 -- Relations pour F. Scott Fitzgerald
-INSERT INTO book_author (book_id, author_id, role) VALUES (7, 3, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (8, 3, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (7, 3, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (8, 3, 'first');
 
 -- Relations pour Victor Hugo
-INSERT INTO book_author (book_id, author_id, role) VALUES (9, 4, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (10, 4, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (9, 4, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (10, 4, 'first');
 
 -- Relations pour Charles Dickens
-INSERT INTO book_author (book_id, author_id, role) VALUES (11, 5, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (12, 5, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (11, 5, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (12, 5, 'first');
 
 -- Relations pour Jane Austen
-INSERT INTO book_author (book_id, author_id, role) VALUES (13, 6, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (14, 6, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (13, 6, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (14, 6, 'first');
 
 -- Relations pour Marcel Proust
-INSERT INTO book_author (book_id, author_id, role) VALUES (15, 7, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (16, 7, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (15, 7, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (16, 7, 'first');
 
 -- Relation pour Emily Bronte
-INSERT INTO book_author (book_id, author_id, role) VALUES (17, 8, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (17, 8, 'first');
 
 -- Relations pour Jules Verne
-INSERT INTO book_author (book_id, author_id, role) VALUES (1, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (2, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (3, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (4, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (5, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (6, 9, 'Premier auteur');
-INSERT INTO book_author (book_id, author_id, role) VALUES (7, 9, 'Premier auteur');
+INSERT INTO book_author (book_id, author_id, role) VALUES (1, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (2, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (3, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (4, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (5, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (6, 9, 'first');
+INSERT INTO book_author (book_id, author_id, role) VALUES (7, 9, 'first');
