@@ -56,17 +56,12 @@ INSERT INTO book (title, published_date, genre) VALUES ('Les Enfants du capitain
 INSERT INTO book (title, published_date, genre) VALUES ('L''Île mystérieuse', '1874-01-01', 'Aventure');
 INSERT INTO book (title, published_date, genre) VALUES ('Les Cinq Cents Millions de la Bégum', '1879-01-01', 'Science-fiction');
 
--- Livres de Mark Twain
--- INSERT INTO book (title, published_date, genre) VALUES ('Les Aventures de Tom Sawyer', '1876-06-01', 'Aventure');
--- INSERT INTO book (title, published_date, genre) VALUES ('Les Aventures de Huckleberry Finn', '1884-12-10', 'Aventure');
-
 -- Relations
 
 -- Relations pour George Orwell
 INSERT INTO book_author (book_id, author_id, role) VALUES (3, 1, 'Premier auteur');
 INSERT INTO book_author (book_id, author_id, role) VALUES (4, 1, 'Premier auteur');
 
--- Relations pour J.K. Rowling
 -- Relations pour J.K. Rowling
 INSERT INTO book_author (book_id, author_id, role) VALUES (1, 2, 'Premier auteur');
 INSERT INTO book_author (book_id, author_id, role) VALUES (2, 2, 'Premier auteur');
@@ -107,7 +102,3 @@ INSERT INTO book_author (book_id, author_id, role) VALUES (4, 9, 'Premier auteur
 INSERT INTO book_author (book_id, author_id, role) VALUES (5, 9, 'Premier auteur');
 INSERT INTO book_author (book_id, author_id, role) VALUES (6, 9, 'Premier auteur');
 INSERT INTO book_author (book_id, author_id, role) VALUES (7, 9, 'Premier auteur');
-
--- Relations pour Mark Twain
--- INSERT INTO book_author (book_id, author_id, role) VALUES (1, 12, 'Premier auteur');
--- INSERT INTO book_author (book_id, author_id, role) VALUES (2, 12, 'Premier auteur');
