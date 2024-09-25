@@ -136,17 +136,17 @@ WHERE a.first_name = 'Jane' AND a.last_name = 'Austen';
 SELECT a.first_name, a.last_name
 FROM author a
 JOIN book_author ba ON a.id = ba.author_id
-GROUP BY a.id, a.first_name, a.last_name
+GROUP BY a.id
 HAVING COUNT(ba.book_id) > 3;
 
 SELECT COUNT(*) FROM book;
 
-SELECT a.first_name, a.last_name
+SELECT a.first_name, a.last_name, count(ba.book_id) as num
 FROM author a
 JOIN book_author ba ON a.id = ba.author_id
-GROUP BY a.id, a.first_name, a.last_name
+GROUP BY a.id
 ORDER BY COUNT(ba.book_id) DESC
-LIMIT 1;
+LIMIT 3;
 
 SELECT AVG(book_count) AS average_books
 FROM (
@@ -167,15 +167,15 @@ JOIN book_author ba ON b.id = ba.book_id
 JOIN author a ON ba.author_id = a.id
 WHERE a.last_name = 'Verne';
 
-SELECT a.first_name, a.last_name
+SELECT a.first_name, a.last_name, COUNT(ba.book_id)
 FROM author a
 JOIN book_author ba ON a.id = ba.author_id
-GROUP BY a.id, a.first_name, a.last_name
+GROUP BY a.id
 HAVING COUNT(ba.book_id) = (
     SELECT COUNT(ba2.book_id)
     FROM author a2
     JOIN book_author ba2 ON a2.id = ba2.author_id
-    WHERE a2.first_name = 'F. Scott' AND a2.last_name = 'Fitzgerald'
+    WHERE a2.first_name = 'Victor' AND a2.last_name = 'Hugo'
 );
 
 CREATE TABLE editor (
@@ -217,6 +217,10 @@ CREATE INDEX idx_delivery_address_gin ON orders USING gin (delivery_address gin_
 -- Ils permettent un accès rapide aux données triées par date.
 
 CREATE INDEX idx_order_date ON orders(order_date);
+
+-- corrélation élevée avec l'ordre physique des lignes
+-- Consomme beaucoup moins d'espace disque qu'un index B-tree
+CREATE INDEX idx_order_date_brin ON orders USING brin(order_date);
 
 -- Scénario 3 - B-TREE: Bien que la colonne order_status ait une faible cardinalité (peu de valeurs distinctes), un index B-tree est généralement efficace 
 -- pour les filtres sur des colonnes avec des valeurs discrètes. Cela est particulièrement vrai si les requêtes filtrent souvent par statut.
