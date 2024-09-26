@@ -57,3 +57,101 @@ FROM
     Customer c
 JOIN 
     Account a ON c.id = a.customer_id;
+
+-----------------------------------------------
+
+-- Sous-requête
+
+SELECT 
+    c.description AS category_name,
+    (SELECT COUNT(*) 
+     FROM inventory.products p 
+     WHERE p.category_id = c.id) AS product_count
+FROM 
+    inventory.categories c
+WHERE 
+    (SELECT COUNT(*) 
+     FROM inventory.products p 
+     WHERE p.category_id = c.id) > 5;
+
+-- Requête imbriquée
+
+SELECT 
+    p.name AS product_name,
+    (SELECT SUM(ol.quantity) 
+     FROM sales.order_lines ol
+     JOIN sales.orders o ON ol.order_id = o.id
+     JOIN sales.customers c ON o.customer_id = c.id
+     WHERE ol.sku = p.sku AND c.newsletter = true) AS total_quantity
+FROM 
+    inventory.products p
+WHERE 
+    EXISTS (
+        SELECT 1 
+        FROM sales.order_lines ol
+        JOIN sales.orders o ON ol.order_id = o.id
+        JOIN sales.customers c ON o.customer_id = c.id
+        WHERE ol.sku = p.sku AND c.newsletter = true
+    )
+ORDER BY 
+    total_quantity DESC;
+
+-- Triggers
+
+ALTER TABLE inventory.products 
+ADD COLUMN last_updated TIMESTAMP;
+
+CREATE TRIGGER trg_update_product_last_updated
+AFTER UPDATE ON inventory.products
+FOR EACH ROW
+BEGIN
+    IF NEW.price <> OLD.price THEN
+        SET NEW.last_updated = CURRENT_TIMESTAMP;
+    END IF;
+END;
+
+-- Fonctions
+
+CREATE FUNCTION sales.get_customer_total(p_customer_id CHAR(5))
+RETURNS DECIMAL(10,2)
+BEGIN
+    DECLARE v_total DECIMAL(10,2);
+
+    SELECT SUM(p.price * ol.quantity) INTO v_total
+    FROM sales.orders o
+    JOIN sales.order_lines ol ON o.id = ol.order_id
+    JOIN inventory.products p ON ol.sku = p.sku
+    WHERE o.customer_id = p_customer_id;
+
+    RETURN v_total;
+END;
+
+SELECT sales.get_customer_total('CU001') AS total_sales;
+
+-- Procédures
+
+CREATE PROCEDURE sales.create_order(
+    p_customer_id CHAR(5),
+    p_order_date DATE,
+    p_sku VARCHAR(7),
+    p_quantity INT
+)
+BEGIN
+    DECLARE v_order_id INT;
+
+    -- Insérer une nouvelle commande
+    INSERT INTO sales.orders (customer_id, order_date)
+    VALUES (p_customer_id, p_order_date);
+
+    -- Récupérer l'ID de la commande insérée
+    SET v_order_id = LAST_INSERT_ID();
+
+    -- Insérer une ligne de commande
+    INSERT INTO sales.order_lines (order_id, sku, quantity)
+    VALUES (v_order_id, p_sku, p_quantity);
+
+    -- Commit la transaction
+    COMMIT;
+END;
+
+CALL sales.create_order('CU001', '2023-06-08', '1000001', 2);
