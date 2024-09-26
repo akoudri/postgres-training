@@ -13,11 +13,14 @@ services:
       - POSTGRES_USER=training
       - POSTGRES_PASSWORD=training
       - POSTGRES_DB=training
+      - PGDATA=/var/lib/postgresql/data/pgdata
     ports:
       - 6543:5432
-    #volumes:
-    #- trainingdata:/var/lib/postgresql/data:Z
-    #- ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+    volumes:
+      - trainingdata:/var/lib/postgresql/data:Z
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
   training-admin:
     image: dpage/pgadmin4:latest
     container_name: pgAdmin

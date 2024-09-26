@@ -415,6 +415,55 @@ CREATE INDEX idx_orders_order_status ON public.orders (order_status) WHERE order
 
 CREATE INDEX idx_orders_customer_id_product_id ON public.orders (customer_id, product_id);
 
+------------------------HINTS----------------------------------------
+
+CREATE INDEX idx_people_height ON public.people (height);
+
+SELECT /*+ SeqScan(p) */ * 
+FROM public.people p
+WHERE height > 1.80;
+
+SELECT /*+ IndexScan(p idx_people_height) */ *
+FROM public.people p
+WHERE height BETWEEN 1.60 AND 1.80;
+
+SELECT /*+ IndexOnlyScan(p idx_people_height_name) */ name, height
+FROM public.people p
+ORDER BY height DESC
+LIMIT 10;
+
+DROP INDEX idx_people_height;
+CREATE INDEX idx_people_height_name ON public.people (height, name);
+
+SELECT /*+ BitmapScan(p idx_people_gender) */ gender, count(*) 
+FROM public.people p
+GROUP BY gender;
+
+SELECT /*+ IndexScan(p idx_people_height) SeqScan(p) */ name
+FROM public.people p
+WHERE height > 1.90 OR height < 1.60;
+
+CREATE INDEX idx_people_gender ON public.people (gender);
+
+CREATE TABLE public.account (
+    id serial not null primary key,
+    code varchar(20),
+    person_id integer references public.people(id)
+);
+
+CREATE INDEX idx_people_id ON public.people (id);
+CREATE INDEX idx_account_person_id ON public.account (person_id);
+
+SELECT /*+ HashJoin(p s) */ p.name
+FROM public.people p
+JOIN public.account a ON p.id = a.person_id
+WHERE a.code = 'XXXX';
+
+SELECT /*+ MergeJoin(p s) */ p.name
+FROM public.people p
+JOIN public.account a ON p.id = a.person_id
+WHERE a.code = 'XXXX';
+
 --------------------- QUIZZ -------------------------------------
 
 -- 2. b, 3. d, 4. b, 5. c, 6. a, 8. d
