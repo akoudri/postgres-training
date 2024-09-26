@@ -1,3 +1,207 @@
+---------- CTE --------------
+
+WITH 
+  product_stats AS (
+    SELECT 
+      c.description AS category,
+      COUNT(*) AS product_count,
+      AVG(p.price) AS avg_price
+    FROM 
+      inventory.products p
+      JOIN inventory.categories c ON p.category_id = c.id
+    GROUP BY 
+      c.description
+  ),
+  order_stats AS (
+    SELECT 
+      c.description AS category,
+      COUNT(DISTINCT o.id) AS order_count,
+      SUM(ol.quantity) AS total_quantity
+    FROM 
+      sales.order_lines ol
+      JOIN inventory.products p ON ol.sku = p.sku
+      JOIN inventory.categories c ON p.category_id = c.id
+      JOIN sales.orders o ON ol.order_id = o.id
+    GROUP BY 
+      c.description
+  )
+SELECT 
+  ps.category,
+  ps.product_count,
+  ps.avg_price,
+  os.order_count,
+  os.total_quantity
+FROM 
+  product_stats ps
+  JOIN order_stats os ON ps.category = os.category;
+
+
+----------- Sous-Requêtes -----------------------
+
+SELECT 
+  p.name AS product_name,
+  p.price AS product_price,
+  (SELECT MAX(o.order_date) 
+   FROM sales.orders o
+   JOIN sales.order_lines ol ON o.id = ol.order_id
+   WHERE ol.sku = p.sku) AS last_order_date,
+  (SELECT COUNT(*) 
+   FROM sales.order_lines ol
+   WHERE ol.sku = p.sku) AS order_count,
+  (SELECT SUM(ol.quantity)
+   FROM sales.order_lines ol
+   WHERE ol.sku = p.sku) AS total_quantity
+FROM 
+  inventory.products p
+WHERE 
+  EXISTS (
+    SELECT 1 
+    FROM sales.order_lines ol
+    WHERE ol.sku = p.sku
+  );
+
+----------- Requêtes imbriquées -----------
+
+SELECT 
+  c.company AS customer,
+  (SELECT COUNT(*) 
+   FROM sales.orders o
+   WHERE o.customer_id = c.id) AS total_orders,
+  (SELECT SUM(ol.quantity * p.price)
+   FROM sales.orders o
+   JOIN sales.order_lines ol ON o.id = ol.order_id
+   JOIN inventory.products p ON ol.sku = p.sku
+   WHERE o.customer_id = c.id) AS total_amount,
+  (SELECT MAX(o.order_date)
+   FROM sales.orders o
+   WHERE o.customer_id = c.id) AS last_order_date,
+  (SELECT p.name
+   FROM sales.orders o
+   JOIN sales.order_lines ol ON o.id = ol.order_id
+   JOIN inventory.products p ON ol.sku = p.sku
+   WHERE o.customer_id = c.id
+   ORDER BY p.price DESC
+   LIMIT 1) AS most_expensive_product,
+  (SELECT ol.quantity
+   FROM sales.orders o
+   JOIN sales.order_lines ol ON o.id = ol.order_id
+   JOIN inventory.products p ON ol.sku = p.sku
+   WHERE o.customer_id = c.id
+   ORDER BY p.price DESC
+   LIMIT 1) AS quantity_most_expensive,
+  (SELECT p.price
+   FROM sales.orders o
+   JOIN sales.order_lines ol ON o.id = ol.order_id
+   JOIN inventory.products p ON ol.sku = p.sku
+   WHERE o.customer_id = c.id
+   ORDER BY p.price DESC
+   LIMIT 1) AS price_most_expensive
+FROM 
+  sales.customers c
+WHERE 
+  EXISTS (
+    SELECT 1 
+    FROM sales.orders o
+    WHERE o.customer_id = c.id
+  );
+
+---------- Procédures stockées ---------------
+
+CREATE OR REPLACE PROCEDURE inventory.add_product(
+  p_sku VARCHAR(7),
+  p_name VARCHAR(50),
+  p_category_id INT,
+  p_size INT,
+  p_price DECIMAL(5,2)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_rows_inserted INT;
+BEGIN
+  INSERT INTO inventory.products (sku, name, category_id, size, price)
+  VALUES (p_sku, p_name, p_category_id, p_size, p_price);
+  
+  GET DIAGNOSTICS v_rows_inserted = ROW_COUNT;
+  
+  RAISE NOTICE 'Inserted % row(s) into inventory.products', v_rows_inserted;
+END;
+$$
+;
+
+CREATE OR REPLACE PROCEDURE inventory.update_product_price(
+  p_sku VARCHAR(7),
+  p_percentage DECIMAL(5,2)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_new_price DECIMAL(5,2);
+BEGIN
+  UPDATE inventory.products 
+  SET price = price * (1 + p_percentage / 100)
+  WHERE sku = p_sku
+  RETURNING price INTO v_new_price;
+  
+  RAISE NOTICE 'Updated price for product % to %', p_sku, v_new_price;
+END;
+$$
+;
+
+CREATE OR REPLACE PROCEDURE sales.place_order(
+  p_customer_id CHAR(5),
+  p_order_date DATE,
+  p_items TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_order_id INT;
+  v_sku VARCHAR(7);
+  v_quantity INT;
+BEGIN
+  INSERT INTO sales.orders (customer_id, order_date)
+  VALUES (p_customer_id, p_order_date)
+  RETURNING id INTO v_order_id;
+  
+  FOR v_sku, v_quantity IN 
+    SELECT TRIM(SPLIT_PART(item, ',', 1)), TRIM(SPLIT_PART(item, ',', 2))::INT
+    FROM REGEXP_SPLIT_TO_TABLE(p_items, E'\\|') AS item
+  LOOP
+    INSERT INTO sales.order_lines (order_id, sku, quantity)
+    VALUES (v_order_id, v_sku, v_quantity);
+  END LOOP;
+  
+  RAISE NOTICE 'Placed order % with % line item(s)', v_order_id, COUNT(*) FROM sales.order_lines WHERE order_id = v_order_id;
+END;
+$$
+;
+
+---------------- Triggers -------------------
+
+-- Créer la fonction du trigger
+CREATE OR REPLACE FUNCTION update_newsletter_subscription()
+  RETURNS TRIGGER AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM sales.customers 
+    WHERE id = NEW.customer_id AND newsletter = true
+  ) THEN
+    UPDATE sales.customers 
+    SET newsletter = true
+    WHERE id = NEW.customer_id;
+  END IF;
+  RETURN NEW;
+END;
+$$
+ LANGUAGE plpgsql;
+
+-- Créer le trigger
+CREATE TRIGGER trg_update_newsletter
+AFTER INSERT ON sales.orders
+FOR EACH ROW
+EXECUTE FUNCTION update_newsletter_subscription();
+
 ----------- Requêtes ---------------------
 
 select * from inventory.products
