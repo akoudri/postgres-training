@@ -1,41 +1,47 @@
 CREATE DATABASE ecommerce;
 
-CREATE ROLE admin_role WITH LOGIN PASSWORD 'admin_password';
-CREATE ROLE customer_role WITH LOGIN PASSWORD 'customer_password';
-CREATE ROLE vendor_role WITH LOGIN PASSWORD 'vendor_password';
+CREATE ROLE admin WITH LOGIN PASSWORD 'training';
+CREATE ROLE customer WITH LOGIN PASSWORD 'training';
+CREATE ROLE vendor WITH LOGIN PASSWORD 'training';
 
-GRANT CREATE ON DATABASE ecommerce TO admin_role;
+GRANT CREATE ON DATABASE ecommerce TO admin;
 
 -- Pour les tables existantes
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO customer_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO customer;
+
+-- Dans le cas d'un schéma particulier
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO customer;
+GRANT USAGE ON SCHEMA inventory TO customer;
+
 
 -- Pour les tables futures
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO customer_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO customer;
 
 -- Pour les tables existantes
-GRANT SELECT, INSERT ON produits TO vendor_role;
-GRANT SELECT, INSERT ON inventaire TO vendor_role;
+GRANT SELECT, INSERT ON produits TO vendor;
+GRANT SELECT, INSERT ON inventaire TO vendor;
 
 -- Pour les tables futures (si vous prévoyez de créer d'autres tables similaires)
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT ON TABLES TO vendor_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT ON TABLES TO vendor;
 
-REVOKE CONNECT ON DATABASE ecommerce FROM customer_role;
+REVOKE CONNECT ON DATABASE ecommerce FROM customer;
 
 ---------------------------------------
 
-CREATE ROLE general_user WITH LOGIN PASSWORD 'general_password';
+CREATE ROLE general_user WITH LOGIN PASSWORD 'training';
 
-GRANT customer_role TO general_user;
-GRANT vendor_role TO general_user;
+GRANT customer TO general_user;
+GRANT vendor TO general_user;
 
--- Accorder l'accès à la base de données à admin_role et general_user
-GRANT CONNECT ON DATABASE ecommerce TO admin_role;
+-- Accorder l'accès à la base de données à admin et general_user
+GRANT CONNECT ON DATABASE ecommerce TO admin;
 GRANT CONNECT ON DATABASE ecommerce TO general_user;
 
 -- Révoquer l'accès pour tous les autres rôles, si nécessaire
 REVOKE CONNECT ON DATABASE ecommerce FROM PUBLIC;
 
-ALTER ROLE admin_role WITH CONNECTION LIMIT 5;
+ALTER ROLE admin WITH CONNECTION LIMIT 5;
 
 ------------------------------------------
 
@@ -100,13 +106,13 @@ FOREIGN KEY (author_id)
 REFERENCES author(id)
 ON DELETE CASCADE;
 
-CREATE TYPE author_role AS ENUM ('first', 'second');
+CREATE TYPE author AS ENUM ('first', 'second');
 
 
 CREATE TABLE book_author (
     book_id INT,
     author_id INT,
-    role author_role,
+    role author,
     PRIMARY KEY (book_id, author_id),
     FOREIGN KEY (book_id) REFERENCES book(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES author(id) ON DELETE CASCADE

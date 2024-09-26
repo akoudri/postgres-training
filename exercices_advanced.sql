@@ -202,6 +202,35 @@ AFTER INSERT ON sales.orders
 FOR EACH ROW
 EXECUTE FUNCTION update_newsletter_subscription();
 
+-- Créer la table inventory.reorder si elle n'existe pas déjà
+CREATE TABLE IF NOT EXISTS inventory.reorder (
+  sku VARCHAR(7) REFERENCES inventory.products(sku),
+  reorder_date DATE
+);
+
+-- Fonction trigger
+CREATE OR REPLACE FUNCTION check_quantity_and_reorder()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Vérifier si la quantité est supérieure à 10
+  IF NEW.quantity > 10 THEN
+    -- Insérer un enregistrement dans la table inventory.reorder
+    INSERT INTO inventory.reorder (sku, reorder_date)
+    VALUES (NEW.sku, CURRENT_DATE);
+  END IF;
+  
+  -- Propager l'opération d'insertion/mise à jour à la table sales.order_lines
+  RETURN NEW;
+END;
+$$
+ LANGUAGE plpgsql;
+
+-- Trigger
+CREATE TRIGGER trg_check_quantity_and_reorder
+AFTER INSERT OR UPDATE ON sales.order_lines
+FOR EACH ROW
+EXECUTE FUNCTION check_quantity_and_reorder();
+
 ----------- Requêtes ---------------------
 
 select * from inventory.products
