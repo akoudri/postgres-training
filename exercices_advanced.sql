@@ -256,7 +256,7 @@ on employees.service_id = services.id;
 
 create role rh with login;
 grant select on table manufacturing.employees to rh;
-alter role rh with password 'avicenne';
+alter role rh with password 'training';
 
 
 ---------- Agrégations -----------------
@@ -305,6 +305,23 @@ select
 from people
 group by rollup(gender);
 
+SELECT 
+    name, 
+    size, 
+    MIN(price) OVER(PARTITION BY name, size) AS min_price,
+    MAX(price) OVER(PARTITION BY name, size) AS max_price,
+    AVG(price) OVER(PARTITION BY name, size) AS avg_price
+FROM inventory.products;
+
+SELECT 
+    name, 
+    size, 
+    MIN(price) OVER(wnd) AS min_price,
+    MAX(price) OVER(wnd) AS max_price,
+    AVG(price) OVER(wnd) AS avg_price
+FROM inventory.products
+WINDOW wnd AS (PARTITION BY name, size);
+
 SELECT
   customer_id,
   EXTRACT(YEAR FROM order_date) AS order_year,
@@ -321,18 +338,10 @@ ORDER BY
   order_year ASC,
   order_month ASC;
   
-select sku, sum(quantity) as "total" 
-from sales.order_lines
-group by(sku)
-order by total desc;
-
-SELECT 
-    name, 
-    size, 
-    MIN(price) OVER(PARTITION BY name, size) AS min_price,
-    MAX(price) OVER(PARTITION BY name, size) AS max_price,
-    AVG(price) OVER(PARTITION BY name, size) AS avg_price
-FROM inventory.products;
+-- select sku, sum(quantity) as "total" 
+-- from sales.order_lines
+-- group by(sku)
+-- order by total desc;
 
 with tab as (
 	select 
@@ -358,6 +367,31 @@ SELECT
 	NTH_VALUE(company, 3) OVER (ORDER BY company) AS nth_value
 FROM sales.customers;
 
+select distinct
+	customer_id,
+	first_value(order_date) over (partition by customer_id order by order_date asc) as first,
+	last_value(order_date) over (partition by customer_id order by order_date asc rows between unbounded preceding and unbounded following) as last
+from sales.orders;
+
+select name, gender, height,
+	rank() over (partition by gender order by height desc),
+	dense_rank() over (partition by gender order by height desc)
+from people
+order by gender, height desc;
+
+select
+	mode() within group (order by height)
+from public.people;
+
+SELECT round(height), COUNT(*)
+FROM public.people
+GROUP BY round(height);
+
+--OR
+
+SELECT DISTINCT height,
+       COUNT(*) OVER (PARTITION BY height) as count
+FROM public.people;
 
 SELECT
 	gender,
@@ -367,28 +401,17 @@ SELECT
 FROM people
 GROUP by rollup(gender);
 
-select category_id,
-	min(price) as "min price",
-	percentile_cont(.25) within group (order by price) as "1st quartile",
-	percentile_cont(.50) within group (order by price) as "2nd quartile",
-	percentile_cont(.75) within group (order by price) as "3rd quartile",
-	max(price) as "max price",
-	max(price) - min(price) as "price range"
+select
+	category_id,
+	min(price) as "min_price",
+	percentile_disc(0.25) within group (order by price) as "1st quantile",
+	percentile_disc(0.5) within group (order by price) as "2nd quantile",
+	percentile_disc(0.75) within group (order by price) as "3rd quantile",
+	max(price) as "min_price",
+	max(price) - min(price) as "range",
+	round(avg(price), 2) as avg
 from inventory.products
-group by rollup(category_id);
-
-WITH tab AS (
-	SELECT
-		customer_id,
-		FIRST_VALUE(order_date) OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS first_order_date,
-		LAST_VALUE(order_date) OVER (PARTITION BY customer_id ORDER BY order_date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_order_date
-	FROM
-		sales.orders
-	ORDER BY
-		customer_id
-)
-SELECT DISTINCT * FROM tab;
-
+group by category_id;
 
 select sku,
 	name,
@@ -428,26 +451,6 @@ from people;
 
 select name, height, ntile(4) over (order by height)
 from people order by height;
-
-select name, gender, height,
-	rank() over (partition by gender order by height desc),
-	dense_rank() over (partition by gender order by height desc)
-from people
-order by gender, height desc;
-
-select
-	mode() within group (order by height)
-from public.people;
-
-SELECT round(height), COUNT(*)
-FROM public.people
-GROUP BY round(height);
-
---OR
-
-SELECT DISTINCT height,
-       COUNT(*) OVER (PARTITION BY height) as count
-FROM public.people;
 
 SELECT
     pclass,
