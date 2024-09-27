@@ -1,3 +1,14 @@
+select name,
+	case
+		when height < 150 then 'cat 1'
+		when height between 150 and 170 then 'cat 2'
+		when height between 170 and 190 then 'cat 3'
+		else 'cat 4'
+	end as category
+from people;
+
+--------------------------------------------------------------
+
 -- Customer Table
 CREATE TABLE Customer (
     id INT PRIMARY KEY,                      -- PRIMARY KEY Constraint
