@@ -1,3 +1,21 @@
+SELECT * FROM inventory.products
+WHERE price BETWEEN 10 AND 20;
+
+SELECT e.lastname 
+FROM manufacturing.employees e
+LEFT JOIN manufacturing.services s ON e.service_id = s.id
+WHERE e.lastname LIKE 'F%';
+
+SELECT e.firstname 
+FROM manufacturing.employees e
+WHERE e.firstname SIMILAR TO 'D\w+[Ee]';
+
+CREATE VIEW organisation
+	AS
+SELECT e.firstname || ' ' || e.lastname as fullname, s.name as service
+FROM manufacturing.employees e
+LEFT JOIN manufacturing.services s ON e.service_id = s.id;
+
 ---------- CTE --------------
 
 WITH 
@@ -28,7 +46,7 @@ WITH
 SELECT 
   ps.category,
   ps.product_count,
-  ps.avg_price,
+  round(ps.avg_price, 2),
   os.order_count,
   os.total_quantity
 FROM 
@@ -104,6 +122,51 @@ WHERE
     FROM sales.orders o
     WHERE o.customer_id = c.id
   );
+
+------------- Rôles et privilèges ---------------
+
+CREATE DATABASE ecommerce;
+
+CREATE ROLE admin WITH LOGIN PASSWORD 'training';
+CREATE ROLE customer WITH LOGIN PASSWORD 'training';
+CREATE ROLE vendor WITH LOGIN PASSWORD 'training';
+
+GRANT CREATE ON DATABASE ecommerce TO admin;
+
+-- Pour les tables existantes
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO customer;
+
+-- Dans le cas d'un schéma particulier
+
+GRANT USAGE ON SCHEMA inventory TO customer;
+GRANT SELECT ON ALL TABLES IN SCHEMA inventory TO customer;
+
+
+-- Pour les tables futures
+ALTER DEFAULT PRIVILEGES IN SCHEMA inventory GRANT SELECT ON TABLES TO customer;
+
+-- Pour les tables existantes
+GRANT SELECT, INSERT ON produits TO vendor;
+GRANT SELECT, INSERT ON inventaire TO vendor;
+
+-- Pour les tables futures (si vous prévoyez de créer d'autres tables similaires)
+ALTER DEFAULT PRIVILEGES IN SCHEMA inventory GRANT SELECT, INSERT ON TABLES TO vendor;
+
+REVOKE CONNECT ON DATABASE ecommerce FROM customer;
+
+CREATE ROLE general_user WITH LOGIN PASSWORD 'training';
+
+GRANT customer TO general_user;
+GRANT vendor TO general_user;
+
+-- Accorder l'accès à la base de données à admin et general_user
+GRANT CONNECT ON DATABASE ecommerce TO admin;
+GRANT CONNECT ON DATABASE ecommerce TO general_user;
+
+-- Révoquer l'accès pour tous les autres rôles, si nécessaire
+REVOKE CONNECT ON DATABASE ecommerce FROM PUBLIC;
+
+ALTER ROLE admin WITH CONNECTION LIMIT 5;
 
 ---------- Procédures stockées ---------------
 
@@ -231,44 +294,7 @@ AFTER INSERT OR UPDATE ON sales.order_lines
 FOR EACH ROW
 EXECUTE FUNCTION check_quantity_and_reorder();
 
------------ Requêtes ---------------------
-
-select * from inventory.products
-where price between 10 and 20;
-
-select employees.firstname, employees.lastname, services.name as service from manufacturing.employees as employees
-left join manufacturing.services as services
-on employees.service_id = services.id
-where services.name = 'Manufacturing';
-
-select * from manufacturing.employees
-where employees.lastname like 'F%';
-
-select * from manufacturing.employees
-where employees.firstname ilike 'D%E';
-
-create view manufacturing.members
-as
-select firstname, lastname, name
-from manufacturing.employees
-left join manufacturing.services
-on employees.service_id = services.id;
-
-create role rh with login;
-grant select on table manufacturing.employees to rh;
-alter role rh with password 'training';
-
-
 ---------- Agrégations -----------------
-
-select size, count(*) as nb
-from inventory.products
-group by size
-order by nb;
-
-select state, count(*)
-from sales.customers
-group by state;
 
 select name, round(avg(price), 2) as avg_price from inventory.products
 group by name
@@ -337,11 +363,6 @@ ORDER BY
   customer_id,
   order_year ASC,
   order_month ASC;
-  
--- select sku, sum(quantity) as "total" 
--- from sales.order_lines
--- group by(sku)
--- order by total desc;
 
 with tab as (
 	select 
