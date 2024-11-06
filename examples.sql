@@ -104,41 +104,26 @@ END;
 
 --------------------------------------------
 
-CREATE PROCEDURE sales.create_order(
-  p_customer_id CHAR(5),
-  p_order_date DATE,
-  p_sku VARCHAR(7),
-  p_quantity INT
+CREATE OR REPLACE PROCEDURE calculate_order_total(
+    IN p_order_id INT,
+    OUT p_total_amount DECIMAL(10,2)
 )
 LANGUAGE plpgsql
 AS $$
-DECLARE
-  v_order_id INT;
 BEGIN
-  -- Vérifier que le client existe
-  IF NOT EXISTS (SELECT 1 FROM sales.customers WHERE id = p_customer_id) THEN
-    RAISE EXCEPTION 'Invalid customer ID: %', p_customer_id;
-  END IF;
+    -- Calculer le montant total de la commande
+    SELECT COALESCE(SUM(quantity * unit_price), 0)
+    INTO p_total_amount
+    FROM order_items
+    WHERE order_id = p_order_id;
 
-  -- Vérifier que le produit existe
-  IF NOT EXISTS (SELECT 1 FROM inventory.products WHERE sku = p_sku) THEN
-    RAISE EXCEPTION 'Invalid product SKU: %', p_sku;
-  END IF;
+    -- Mettre à jour le montant total dans la table des commandes
+    UPDATE orders
+    SET total_amount = p_total_amount
+    WHERE id = p_order_id;
 
-  -- Créer l'entête de commande dans la table sales.orders
-  INSERT INTO sales.orders (order_date, customer_id)
-  VALUES (p_order_date, p_customer_id)
-  RETURNING id INTO v_order_id;
-
-  -- Créer la ligne de commande dans la table sales.order_lines
-  INSERT INTO sales.order_lines (order_id, sku, quantity)
-  VALUES (v_order_id, p_sku, p_quantity);
-
-  -- Retourner l'ID de la nouvelle commande créée
-  RAISE NOTICE 'Created order % for customer %', v_order_id, p_customer_id;
-EXCEPTION
-  WHEN OTHERS THEN
-    RAISE EXCEPTION 'Error while creating order for customer %: %', p_customer_id, SQLERRM;
+    -- Afficher un message de confirmation
+    RAISE NOTICE 'Le montant total de la commande % a été calculé et mis à jour : %.2f', p_order_id, p_total_amount;
 END;
 $$
 ;

@@ -51,7 +51,7 @@ SELECT
   os.total_quantity
 FROM 
   product_stats ps
-  JOIN order_stats os ON ps.category = os.category;
+  LEFT JOIN order_stats os ON ps.category = os.category;
 
 
 ----------- Sous-Requêtes -----------------------
@@ -137,7 +137,6 @@ GRANT CREATE ON DATABASE ecommerce TO admin;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO customer;
 
 -- Dans le cas d'un schéma particulier
-
 GRANT USAGE ON SCHEMA inventory TO customer;
 GRANT SELECT ON ALL TABLES IN SCHEMA inventory TO customer;
 
@@ -188,6 +187,29 @@ BEGIN
   GET DIAGNOSTICS v_rows_inserted = ROW_COUNT;
   
   RAISE NOTICE 'Inserted % row(s) into inventory.products', v_rows_inserted;
+END;
+$$
+; 
+
+-- version avec le out, uniquement appelable depuis une autre procédure pour le out
+
+CREATE OR REPLACE PROCEDURE inventory.add_product(
+  p_sku VARCHAR(7),
+  p_name VARCHAR(50),
+  p_category_id INT,
+  p_size INT,
+  p_price DECIMAL(5,2),
+  OUT p_rows_inserted INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO inventory.products (sku, name, category_id, size, price)
+  VALUES (p_sku, p_name, p_category_id, p_size, p_price);
+  
+  GET DIAGNOSTICS p_rows_inserted = ROW_COUNT;
+  
+  RAISE NOTICE 'Inserted % row(s) into inventory.products', p_rows_inserted;
 END;
 $$
 ;
@@ -507,7 +529,7 @@ JOIN (
     FROM public.temperatures
     GROUP BY country
 ) c ON t.country = c.country
-GROUP BY t.city, t.country, c.nb_cities
+GROUP BY rollup(t.country, t.city, c.nb_cities)
 ORDER BY t.country, t.city;
 
 SELECT 
