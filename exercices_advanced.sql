@@ -685,10 +685,10 @@ DELETE FROM people WHERE id > 1000 AND id < 70000;
 
 
 --------------------- INDEX ---------------------------------------
-
+-- CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX idx_orders_delivery_address_gin ON public.orders USING gin (delivery_address gin_trgm_ops);
 
-CREATE INDEX idx_orders_order_date ON public.orders (order_date);
+CREATE INDEX idx_orders_order_date ON public.orders (order_date); -- OR BRIN
 
 CREATE INDEX idx_orders_order_status ON public.orders (order_status) WHERE order_status IN ('Pending', 'Shipped', 'Delivered', 'Cancelled');
 
@@ -698,15 +698,18 @@ CREATE INDEX idx_orders_customer_id_product_id ON public.orders (customer_id, pr
 
 CREATE INDEX idx_people_height ON public.people (height);
 
-SELECT /*+ SeqScan(p) */ * 
+/*+ SeqScan(p) */
+SELECT * 
 FROM public.people p
-WHERE height > 1.80;
+WHERE height > 1.80;  
 
-SELECT /*+ IndexScan(p idx_people_height) */ *
+/*+ IndexScan(p idx_people_height) */
+SELECT *
 FROM public.people p
 WHERE height BETWEEN 1.60 AND 1.80;
 
-SELECT /*+ IndexOnlyScan(p idx_people_height_name) */ name, height
+/*+ IndexOnlyScan(p idx_people_height_name) */
+SELECT name, height
 FROM public.people p
 ORDER BY height DESC
 LIMIT 10;
@@ -714,11 +717,13 @@ LIMIT 10;
 DROP INDEX idx_people_height;
 CREATE INDEX idx_people_height_name ON public.people (height, name);
 
-SELECT /*+ BitmapScan(p idx_people_gender) */ gender, count(*) 
+/*+ BitmapScan(p idx_people_gender) */ 
+SELECT gender, count(*) 
 FROM public.people p
 GROUP BY gender;
 
-SELECT /*+ IndexScan(p idx_people_height) SeqScan(p) */ name
+/*+ IndexScan(p idx_people_height) SeqScan(p) */ 
+SELECT name
 FROM public.people p
 WHERE height > 1.90 OR height < 1.60;
 
@@ -733,12 +738,14 @@ CREATE TABLE public.account (
 CREATE INDEX idx_people_id ON public.people (id);
 CREATE INDEX idx_account_person_id ON public.account (person_id);
 
-SELECT /*+ HashJoin(p s) */ p.name
+/*+ HashJoin(p s) */
+SELECT p.name
 FROM public.people p
 JOIN public.account a ON p.id = a.person_id
 WHERE a.code = 'XXXX';
 
-SELECT /*+ MergeJoin(p s) */ p.name
+/*+ MergeJoin(p s) */
+SELECT p.name
 FROM public.people p
 JOIN public.account a ON p.id = a.person_id
 WHERE a.code = 'XXXX';
