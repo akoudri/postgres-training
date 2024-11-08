@@ -1,3 +1,14 @@
+select name,
+	case
+		when height < 150 then 'cat 1'
+		when height between 150 and 170 then 'cat 2'
+		when height between 170 and 190 then 'cat 3'
+		else 'cat 4'
+	end as category
+from people;
+
+--------------------------------------------------------------
+
 -- Customer Table
 CREATE TABLE Customer (
     id INT PRIMARY KEY,                      -- PRIMARY KEY Constraint
@@ -58,98 +69,163 @@ FROM
 JOIN 
     Account a ON c.id = a.customer_id;
 
---------------------------------------------
+-----------------------------------------------
 
-CREATE OR REPLACE FUNCTION increment_compteur() 
-RETURNS void AS $$
+-- Sous-requête
+
+SELECT 
+    c.description AS category_name,
+    (SELECT COUNT(*) 
+     FROM inventory.products p 
+     WHERE p.category_id = c.id) AS product_count
+FROM 
+    inventory.categories c
+WHERE 
+    (SELECT COUNT(*) 
+     FROM inventory.products p 
+     WHERE p.category_id = c.id) > 5;
+
+-- Requête imbriquée
+
+SELECT 
+    p.name AS product_name,
+    (SELECT SUM(ol.quantity) 
+     FROM sales.order_lines ol
+     JOIN sales.orders o ON ol.order_id = o.id
+     JOIN sales.customers c ON o.customer_id = c.id
+     WHERE ol.sku = p.sku AND c.newsletter = true) AS total_quantity
+FROM 
+    inventory.products p
+WHERE 
+    EXISTS (
+        SELECT 1 
+        FROM sales.order_lines ol
+        JOIN sales.orders o ON ol.order_id = o.id
+        JOIN sales.customers c ON o.customer_id = c.id
+        WHERE ol.sku = p.sku AND c.newsletter = true
+    )
+ORDER BY 
+    total_quantity DESC;
+
+-- Triggers
+
+ALTER TABLE inventory.products 
+ADD COLUMN last_updated TIMESTAMP;
+
+CREATE TRIGGER trg_update_product_last_updated
+AFTER UPDATE ON inventory.products
+FOR EACH ROW
 BEGIN
-  UPDATE ma_table SET compteur = compteur + 1;
+    IF NEW.price <> OLD.price THEN
+        SET NEW.last_updated = CURRENT_TIMESTAMP;
+    END IF;
 END;
-$$
- LANGUAGE plpgsql VOLATILE;
 
-CREATE TABLE employe (
- id SERIAL PRIMARY KEY,
- nom VARCHAR(50),
- age INTEGER,
- salaire NUMERIC(10,2)
+-- Fonctions
+
+CREATE FUNCTION sales.get_customer_total(p_customer_id CHAR(5))
+RETURNS DECIMAL(10,2)
+BEGIN
+    DECLARE v_total DECIMAL(10,2);
+
+    SELECT SUM(p.price * ol.quantity) INTO v_total
+    FROM sales.orders o
+    JOIN sales.order_lines ol ON o.id = ol.order_id
+    JOIN inventory.products p ON ol.sku = p.sku
+    WHERE o.customer_id = p_customer_id;
+
+    RETURN v_total;
+END;
+
+SELECT sales.get_customer_total('CU001') AS total_sales;
+
+-- Procédures
+
+CREATE PROCEDURE sales.create_order(
+    p_customer_id CHAR(5),
+    p_order_date DATE,
+    p_sku VARCHAR(7),
+    p_quantity INT
+)
+BEGIN
+    DECLARE v_order_id INT;
+
+    -- Insérer une nouvelle commande
+    INSERT INTO sales.orders (customer_id, order_date)
+    VALUES (p_customer_id, p_order_date);
+
+    -- Récupérer l'ID de la commande insérée
+    SET v_order_id = LAST_INSERT_ID();
+
+    -- Insérer une ligne de commande
+    INSERT INTO sales.order_lines (order_id, sku, quantity)
+    VALUES (v_order_id, p_sku, p_quantity);
+
+    -- Commit la transaction
+    COMMIT;
+END;
+
+CALL sales.create_order('CU001', '2023-06-08', '1000001', 2);
+
+-- Requêtes récursives
+
+-- Table de création des employés
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    manager_id INT
 );
 
-CREATE OR REPLACE FUNCTION get_infos_employe(p_id INTEGER) 
-RETURNS RECORD AS $$
-DECLARE
-  infos RECORD;
-BEGIN
-  SELECT nom, age, salaire INTO infos 
-  FROM employe
-  WHERE id = p_id;
-  
-  RETURN infos;
-END;
-$$
- LANGUAGE plpgsql;
+-- Insertion de données exemple
+INSERT INTO employees VALUES
+(1, 'John Doe', NULL),     -- PDG
+(2, 'Jane Smith', 1),      -- Directrice
+(3, 'Bob Martin', 2),      -- Manager
+(4, 'Alice Johnson', 2),   -- Manager
+(5, 'Charlie Brown', 3),   -- Employé
+(6, 'David Lee', 3),       -- Employé
+(7, 'Eve Wilson', 4);      -- Employée
 
- --------------------------------------------
+-- Requête récursive pour afficher la hiérarchie complète
+WITH RECURSIVE employee_hierarchy AS (
+    -- Cas de base : employés sans manager (top niveau)
+    SELECT 
+        employee_id, 
+        name, 
+        manager_id, 
+        name AS hierarchy_path,
+        1 AS level
+    FROM employees
+    WHERE manager_id IS NULL
 
- BEGIN
-  -- code susceptible de lever une exception
-EXCEPTION 
-  WHEN sqlstate_no_data_found THEN
-    -- traitement spécifique pour "aucune donnée trouvée"
-  WHEN sqlstate_unique_violation THEN
-    -- traitement spécifique pour "violation de contrainte unique"
-  WHEN OTHERS THEN
-    -- traitement générique pour toute autre exception
-END;
+    UNION ALL
 
---------------------------------------------
-
-CREATE OR REPLACE PROCEDURE calculate_order_total(
-    IN p_order_id INT,
-    OUT p_total_amount DECIMAL(10,2)
+    -- Cas récursif : parcours de la hiérarchie
+    SELECT 
+        e.employee_id, 
+        e.name, 
+        e.manager_id,
+        eh.hierarchy_path || ' > ' || e.name,
+        eh.level + 1
+    FROM employees e
+    JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
 )
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    -- Calculer le montant total de la commande
-    SELECT COALESCE(SUM(quantity * unit_price), 0)
-    INTO p_total_amount
-    FROM order_items
-    WHERE order_id = p_order_id;
+SELECT 
+    employee_id, 
+    name, 
+    hierarchy_path,
+    level
+FROM employee_hierarchy
+ORDER BY level, employee_id;
 
-    -- Mettre à jour le montant total dans la table des commandes
-    UPDATE orders
-    SET total_amount = p_total_amount
-    WHERE id = p_order_id;
+-- Tables temporaires
 
-    -- Afficher un message de confirmation
-    RAISE NOTICE 'Le montant total de la commande % a été calculé et mis à jour : %.2f', p_order_id, p_total_amount;
-END;
-$$
-;
 
---------------------------------------------
+CREATE TEMPORARY TABLE ma_table_temp (
+    id INT,
+    nom VARCHAR(100)
+);
 
--- Ajouter la colonne last_updated à la table inventory.products
-ALTER TABLE inventory.products ADD COLUMN last_updated TIMESTAMP;
 
--- Créer une fonction trigger
-CREATE OR REPLACE FUNCTION inventory.update_product_last_updated()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Vérifier si le prix a changé
-  IF NEW.price <> OLD.price THEN
-    -- Mettre à jour le champ last_updated avec la date et l'heure courantes
-    NEW.last_updated := CURRENT_TIMESTAMP;
-  END IF;
-  RETURN NEW;
-END;
-$$
- LANGUAGE plpgsql;
-
--- Créer le trigger
-CREATE TRIGGER trg_update_product_last_updated
-BEFORE UPDATE ON inventory.products
-FOR EACH ROW
-WHEN (OLD.price IS DISTINCT FROM NEW.price)
-EXECUTE FUNCTION inventory.update_product_last_updated();
+CREATE TEMP TABLE ma_table_temp AS 
+SELECT * FROM ma_table_originale;
