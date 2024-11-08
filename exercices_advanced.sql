@@ -53,6 +53,8 @@ FROM
   product_stats ps
   LEFT JOIN order_stats os ON ps.category = os.category;
 
+-- TODO: Ajouter exemples de temporary tables
+
 
 ----------- Sous-Requêtes -----------------------
 
@@ -79,6 +81,8 @@ WHERE
   );
 
 ----------- Requêtes imbriquées -----------
+
+-- TODO: Mettre un exemple qui illustre mieux les requêtes imbriquées
 
 SELECT 
   c.company AS customer,
@@ -130,6 +134,8 @@ CREATE DATABASE ecommerce;
 CREATE ROLE admin WITH LOGIN PASSWORD 'training';
 CREATE ROLE customer WITH LOGIN PASSWORD 'training';
 CREATE ROLE vendor WITH LOGIN PASSWORD 'training';
+
+-- TODO: ajouter le droit grant
 
 GRANT CREATE ON DATABASE ecommerce TO admin;
 
