@@ -166,3 +166,66 @@ BEGIN
 END;
 
 CALL sales.create_order('CU001', '2023-06-08', '1000001', 2);
+
+-- Requêtes récursives
+
+-- Table de création des employés
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    manager_id INT
+);
+
+-- Insertion de données exemple
+INSERT INTO employees VALUES
+(1, 'John Doe', NULL),     -- PDG
+(2, 'Jane Smith', 1),      -- Directrice
+(3, 'Bob Martin', 2),      -- Manager
+(4, 'Alice Johnson', 2),   -- Manager
+(5, 'Charlie Brown', 3),   -- Employé
+(6, 'David Lee', 3),       -- Employé
+(7, 'Eve Wilson', 4);      -- Employée
+
+-- Requête récursive pour afficher la hiérarchie complète
+WITH RECURSIVE employee_hierarchy AS (
+    -- Cas de base : employés sans manager (top niveau)
+    SELECT 
+        employee_id, 
+        name, 
+        manager_id, 
+        name AS hierarchy_path,
+        1 AS level
+    FROM employees
+    WHERE manager_id IS NULL
+
+    UNION ALL
+
+    -- Cas récursif : parcours de la hiérarchie
+    SELECT 
+        e.employee_id, 
+        e.name, 
+        e.manager_id,
+        eh.hierarchy_path || ' > ' || e.name,
+        eh.level + 1
+    FROM employees e
+    JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
+)
+SELECT 
+    employee_id, 
+    name, 
+    hierarchy_path,
+    level
+FROM employee_hierarchy
+ORDER BY level, employee_id;
+
+-- Tables temporaires
+
+
+CREATE TEMPORARY TABLE ma_table_temp (
+    id INT,
+    nom VARCHAR(100)
+);
+
+
+CREATE TEMP TABLE ma_table_temp AS 
+SELECT * FROM ma_table_originale;
